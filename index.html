@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Daily Expense Tracker — Google Sheets Integrated</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- Chart.js CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-blue-500 selection:text-white pb-24 md:pb-8">
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 md:px-0"></div>
+
+  <!-- Header Navigation -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200/80 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo and App Title -->
+        <div class="flex items-center gap-3 cursor-pointer" onclick="UI.switchTab('dashboard')">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+            <i data-lucide="wallet" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-base font-bold text-slate-900 leading-none">Expense Tracker</h1>
+              <span class="hidden sm:inline-block px-2 py-0.5 text-[11px] font-semibold tracking-wide bg-blue-100 text-blue-800 rounded-full">PRO</span>
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5">Google Sheets Integrated</p>
+          </div>
+        </div>
+
+        <!-- Desktop Navigation Tabs -->
+        <nav class="hidden md:flex items-center space-x-1">
+          <button data-tab="dashboard" class="nav-btn px-3.5 py-2 rounded-xl text-sm font-semibold text-blue-600 bg-blue-50 transition-all flex items-center gap-2">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Dashboard
+          </button>
+          <button data-tab="add-expense" class="nav-btn px-3.5 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-all flex items-center gap-2">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i> Add Expense
+          </button>
+          <button data-tab="history" class="nav-btn px-3.5 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-all flex items-center gap-2">
+            <i data-lucide="history" class="w-4 h-4"></i> History
+          </button>
+          <button data-tab="reports" class="nav-btn px-3.5 py-2 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-100 transition-all flex items-center gap-2">
+            <i data-lucide="bar-chart-2" class="w-4 h-4"></i> Monthly Report
+          </button>
+        </nav>
+
+        <!-- Right Action Items: Status & Settings -->
+        <div class="flex items-center gap-2.5">
+          <!-- Connection Status Badge -->
+          <div id="headerConnectionBadge" onclick="UI.openSettingsModal()" title="Click to configure Google Sheet">
+            <!-- Dynamically populated in UI.js -->
+          </div>
+
+          <!-- Help / Setup Guide -->
+          <button onclick="UI.openSetupGuideModal()" title="Google Sheet Setup Guide" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+            <i data-lucide="help-circle" class="w-5 h-5"></i>
+          </button>
+
+          <!-- Settings Button -->
+          <button onclick="UI.openSettingsModal()" title="Configuration Settings" class="p-2 rounded-xl text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6">
+
+    <!-- ========================================================================= -->
+    <!-- 1. DASHBOARD VIEW -->
+    <!-- ========================================================================= -->
+    <div id="tab-dashboard" class="tab-view space-y-6">
+
+      <!-- Quick Expense Buttons Row (Requirement 10) -->
+      <div class="bg-gradient-to-r from-blue-700 via-indigo-700 to-slate-900 rounded-3xl p-5 md:p-6 text-white shadow-xl shadow-blue-900/10">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <div>
+            <h2 class="text-xl md:text-2xl font-black tracking-tight">Quick Expense Entry</h2>
+            <p class="text-xs md:text-sm text-blue-200 mt-0.5">Tap any category for instant 5-second mobile logging</p>
+          </div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <button id="sendDailySummaryBtn" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold backdrop-blur text-white flex items-center transition-all">
+              <i data-lucide="mail" class="w-4 h-4 mr-1.5"></i> Send Daily Summary Now
+            </button>
+            <button id="syncGoogleSheetBtn" class="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-semibold backdrop-blur text-white flex items-center transition-all">
+              <i data-lucide="refresh-cw" class="w-4 h-4 mr-1.5"></i> Sync from Sheet
+            </button>
+          </div>
+        </div>
+
+        <!-- Quick Category Action Buttons -->
+        <div class="grid grid-cols-3 sm:grid-cols-6 gap-2.5">
+          <button data-category="Petrol / Fuel" class="quick-expense-btn bg-white/10 hover:bg-white/20 active:scale-95 transition-all p-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/10">
+            <span class="w-8 h-8 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center"><i data-lucide="fuel" class="w-4 h-4"></i></span>
+            <span class="text-xs font-bold">+ Petrol</span>
+          </button>
+          <button data-category="Food" class="quick-expense-btn bg-white/10 hover:bg-white/20 active:scale-95 transition-all p-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/10">
+            <span class="w-8 h-8 rounded-xl bg-emerald-400/20 text-emerald-300 flex items-center justify-center"><i data-lucide="utensils" class="w-4 h-4"></i></span>
+            <span class="text-xs font-bold">+ Food</span>
+          </button>
+          <button data-category="Travel" class="quick-expense-btn bg-white/10 hover:bg-white/20 active:scale-95 transition-all p-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/10">
+            <span class="w-8 h-8 rounded-xl bg-blue-400/20 text-blue-300 flex items-center justify-center"><i data-lucide="plane" class="w-4 h-4"></i></span>
+            <span class="text-xs font-bold">+ Travel</span>
+          </button>
+          <button data-category="Shopping" class="quick-expense-btn bg-white/10 hover:bg-white/20 active:scale-95 transition-all p-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/10">
+            <span class="w-8 h-8 rounded-xl bg-pink-400/20 text-pink-300 flex items-center justify-center"><i data-lucide="shopping-bag" class="w-4 h-4"></i></span>
+            <span class="text-xs font-bold">+ Shopping</span>
+          </button>
+          <button data-category="Bills" class="quick-expense-btn bg-white/10 hover:bg-white/20 active:scale-95 transition-all p-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/10">
+            <span class="w-8 h-8 rounded-xl bg-purple-400/20 text-purple-300 flex items-center justify-center"><i data-lucide="receipt" class="w-4 h-4"></i></span>
+            <span class="text-xs font-bold">+ Bills</span>
+          </button>
+          <button data-category="Other" class="quick-expense-btn bg-white/10 hover:bg-white/20 active:scale-95 transition-all p-3 rounded-2xl flex flex-col items-center justify-center gap-1.5 border border-white/10">
+            <span class="w-8 h-8 rounded-xl bg-slate-400/20 text-slate-200 flex items-center justify-center"><i data-lucide="plus" class="w-4 h-4"></i></span>
+            <span class="text-xs font-bold">+ Other</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- KPI Summary Cards (Requirement 3) -->
+      <div class="grid grid-cols-2 lg:grid-cols-6 gap-3.5 sm:gap-4">
+        
+        <!-- Today's Total Expense -->
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Today</span>
+            <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center"><i data-lucide="calendar" class="w-4 h-4"></i></span>
+          </div>
+          <div id="statTodayTotal" class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">₹0</div>
+          <p class="text-[11px] text-slate-400 mt-1">Expenses for today</p>
+        </div>
+
+        <!-- This Week's Total Expense -->
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">This Week</span>
+            <span class="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center"><i data-lucide="clock" class="w-4 h-4"></i></span>
+          </div>
+          <div id="statWeekTotal" class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">₹0</div>
+          <p class="text-[11px] text-slate-400 mt-1">Current week total</p>
+        </div>
+
+        <!-- This Month's Total Expense -->
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">This Month</span>
+            <span class="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center"><i data-lucide="pie-chart" class="w-4 h-4"></i></span>
+          </div>
+          <div id="statMonthTotal" class="text-xl sm:text-2xl font-black text-blue-600 tracking-tight">₹0</div>
+          <p class="text-[11px] text-slate-400 mt-1">Current month spend</p>
+        </div>
+
+        <!-- Total Number of Expenses -->
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Total Count</span>
+            <span class="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center"><i data-lucide="hash" class="w-4 h-4"></i></span>
+          </div>
+          <div id="statTotalCount" class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">0</div>
+          <p class="text-[11px] text-slate-400 mt-1">Total transactions</p>
+        </div>
+
+        <!-- Average Daily Expense -->
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Daily Average</span>
+            <span class="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center"><i data-lucide="trending-up" class="w-4 h-4"></i></span>
+          </div>
+          <div id="statAvgDaily" class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">₹0</div>
+          <p class="text-[11px] text-slate-400 mt-1">Per active day</p>
+        </div>
+
+        <!-- Highest Expense -->
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
+          <div class="flex items-center justify-between text-slate-500 mb-1">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Highest Spend</span>
+            <span class="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center"><i data-lucide="arrow-up-right" class="w-4 h-4"></i></span>
+          </div>
+          <div id="statHighest" class="text-xl sm:text-2xl font-black text-rose-600 tracking-tight">₹0</div>
+          <p id="statHighestDesc" class="text-[11px] text-slate-400 mt-1 truncate">Highest single expense</p>
+        </div>
+
+      </div>
+
+      <!-- Category-wise Summary Cards (Requirement 3) -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-sm font-bold text-slate-900 uppercase tracking-wider">Category Breakdown</h3>
+          <span class="text-xs text-slate-500 font-medium">Sorted by highest spending</span>
+        </div>
+        <div id="categoryCardsContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3.5">
+          <!-- Dynamically populated in UI.js -->
+        </div>
+      </div>
+
+      <!-- Interactive Charts Grid (Requirement 4) -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- 1. Daily Expense Chart -->
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Daily Expense Trend</h3>
+              <p class="text-xs text-slate-500">Expenditure trend across recent active days</p>
+            </div>
+            <span class="p-2 rounded-xl bg-blue-50 text-blue-600"><i data-lucide="activity" class="w-4 h-4"></i></span>
+          </div>
+          <div class="h-64 relative">
+            <canvas id="dailyExpenseChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 2. Monthly Expense Chart -->
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Monthly Expense Comparison</h3>
+              <p class="text-xs text-slate-500">Total spending across calendar months</p>
+            </div>
+            <span class="p-2 rounded-xl bg-indigo-50 text-indigo-600"><i data-lucide="bar-chart" class="w-4 h-4"></i></span>
+          </div>
+          <div class="h-64 relative">
+            <canvas id="monthlyExpenseChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 3. Category-wise Pie/Donut Chart -->
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Category Distribution</h3>
+              <p class="text-xs text-slate-500">Percentage share of each expense category</p>
+            </div>
+            <span class="p-2 rounded-xl bg-emerald-50 text-emerald-600"><i data-lucide="pie-chart" class="w-4 h-4"></i></span>
+          </div>
+          <div class="h-64 relative">
+            <canvas id="categoryPieChart"></canvas>
+          </div>
+        </div>
+
+        <!-- 4. Payment Method Chart -->
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Payment Modes</h3>
+              <p class="text-xs text-slate-500">Distribution by UPI, Cash, Cards & Transfer</p>
+            </div>
+            <span class="p-2 rounded-xl bg-purple-50 text-purple-600"><i data-lucide="credit-card" class="w-4 h-4"></i></span>
+          </div>
+          <div class="h-64 relative">
+            <canvas id="paymentMethodChart"></canvas>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Recent Transactions List in Dashboard -->
+      <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-base font-bold text-slate-900">Recent Transactions</h3>
+            <p class="text-xs text-slate-500">Quick glance at your latest logged expenses</p>
+          </div>
+          <button onclick="UI.switchTab('history')" class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+            View All <i data-lucide="chevron-right" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+        <div id="recentTransactionsContainer" class="divide-y divide-slate-100">
+          <!-- Populated in UI.js -->
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- 2. MAIN EXPENSE ENTRY FORM VIEW (Requirement 1 & 11) -->
+    <!-- ========================================================================= -->
+    <div id="tab-add-expense" class="tab-view hidden max-w-2xl mx-auto space-y-6">
+
+      <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-sm">
+        
+        <div class="mb-6">
+          <div class="inline-flex items-center gap-2 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold mb-2">
+            <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i> Quick Expense Entry
+          </div>
+          <h2 class="text-2xl font-black text-slate-900">Log New Expense</h2>
+          <p class="text-xs text-slate-500 mt-1">Fields marked with <span class="text-rose-500 font-bold">*</span> are required. Updates Google Sheet automatically.</p>
+        </div>
+
+        <form id="expenseForm" class="space-y-5" novalidate>
+          
+          <!-- Amount Input (Prominent & Large) -->
+          <div>
+            <label for="expenseAmount" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+              Amount (₹) <span class="text-rose-500">*</span>
+            </label>
+            <div class="relative rounded-2xl shadow-sm">
+              <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400 text-2xl font-bold">
+                ₹
+              </div>
+              <input 
+                type="number" 
+                id="expenseAmount" 
+                name="amount" 
+                step="any"
+                min="0.01"
+                placeholder="0.00" 
+                inputmode="decimal"
+                required
+                class="amount-input block w-full pl-11 pr-4 py-3.5 text-2xl font-extrabold text-slate-900 bg-slate-50 border border-slate-200 rounded-2xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all placeholder:text-slate-300"
+              >
+            </div>
+            <p class="text-[11px] text-slate-400 mt-1">Enter numeric value in Indian Rupees</p>
+          </div>
+
+          <!-- Date & Category Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <!-- 1. Date -->
+            <div>
+              <label for="expenseDate" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                Date <span class="text-rose-500">*</span>
+              </label>
+              <div class="relative">
+                <input 
+                  type="date" 
+                  id="expenseDate" 
+                  name="date" 
+                  required
+                  class="block w-full px-4 py-3 text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all"
+                >
+              </div>
+            </div>
+
+            <!-- 2. Expense Category -->
+            <div>
+              <label for="expenseCategory" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                Category <span class="text-rose-500">*</span>
+              </label>
+              <select 
+                id="expenseCategory" 
+                name="category" 
+                required
+                class="block w-full px-4 py-3 text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all cursor-pointer"
+              >
+                <!-- Populated dynamically in UI.js -->
+              </select>
+            </div>
+
+          </div>
+
+          <!-- 3. Expense Description -->
+          <div>
+            <label for="expenseDescription" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+              Expense Description
+            </label>
+            <input 
+              type="text" 
+              id="expenseDescription" 
+              name="description" 
+              placeholder="e.g. Petrol for bike, Lunch with team, Electricity bill"
+              class="block w-full px-4 py-3 text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all placeholder:text-slate-400"
+            >
+          </div>
+
+          <!-- 5. Payment Method & 6. Vendor / Paid To Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            
+            <!-- Payment Method -->
+            <div>
+              <label for="expensePaymentMethod" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                Payment Method
+              </label>
+              <select 
+                id="expensePaymentMethod" 
+                name="paymentMethod" 
+                class="block w-full px-4 py-3 text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all cursor-pointer"
+              >
+                <!-- Populated dynamically in UI.js -->
+              </select>
+            </div>
+
+            <!-- Vendor / Paid To -->
+            <div>
+              <label for="expenseVendor" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+                Vendor / Paid To
+              </label>
+              <input 
+                type="text" 
+                id="expenseVendor" 
+                name="vendor" 
+                placeholder="e.g. BPCL, Swiggy, Amazon, Landlord"
+                class="block w-full px-4 py-3 text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all placeholder:text-slate-400"
+              >
+            </div>
+
+          </div>
+
+          <!-- 7. Notes (Optional) -->
+          <div>
+            <label for="expenseNotes" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+              Notes <span class="text-[10px] font-normal text-slate-400 lowercase">(optional)</span>
+            </label>
+            <textarea 
+              id="expenseNotes" 
+              name="notes" 
+              rows="2" 
+              placeholder="Any additional remarks, split notes, or receipt details..."
+              class="block w-full px-4 py-2.5 text-sm text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all placeholder:text-slate-400"
+            ></textarea>
+          </div>
+
+          <!-- 8. Receipt (Optional File / Camera Upload) -->
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5">
+              Receipt / Bill Photo <span class="text-[10px] font-normal text-slate-400 lowercase">(optional)</span>
+            </label>
+            
+            <div class="flex items-center gap-3">
+              <label class="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-slate-100 text-xs font-semibold text-slate-700 transition-colors">
+                <i data-lucide="camera" class="w-4 h-4 text-blue-600"></i> Upload Receipt
+                <input type="file" id="expenseReceipt" accept="image/*" class="hidden">
+              </label>
+              <button type="button" id="removeReceiptBtn" class="hidden text-xs text-rose-600 hover:underline">Remove</button>
+            </div>
+
+            <div class="mt-2.5">
+              <img id="receiptInputPreview" class="hidden w-28 h-28 object-cover rounded-xl border border-slate-200 shadow-sm" alt="Receipt preview">
+            </div>
+          </div>
+
+          <!-- SAVE EXPENSE BUTTON (Large, High Contrast) -->
+          <div class="pt-3">
+            <button 
+              type="submit" 
+              id="saveExpenseBtn"
+              class="w-full py-4 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.99] text-white font-extrabold text-base rounded-2xl shadow-lg shadow-blue-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <i data-lucide="check" class="w-5 h-5"></i>
+              SAVE EXPENSE
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- 3. EXPENSE HISTORY VIEW (Requirement 5) -->
+    <!-- ========================================================================= -->
+    <div id="tab-history" class="tab-view hidden space-y-5">
+      
+      <!-- History Header & Filter Controls -->
+      <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm space-y-4">
+        
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 class="text-xl font-black text-slate-900">Expense History</h2>
+            <p class="text-xs text-slate-500">Filter, search, edit, or delete logged expenses</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="historyCountBadge" class="px-3 py-1 bg-slate-100 text-slate-700 rounded-full text-xs font-bold">0 expenses</span>
+            <span id="historyTotalBadge" class="px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-bold">Total: ₹0</span>
+          </div>
+        </div>
+
+        <!-- Filter & Search Controls Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          
+          <!-- Search input -->
+          <div class="relative">
+            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+              <i data-lucide="search" class="w-4 h-4"></i>
+            </div>
+            <input 
+              type="text" 
+              id="historySearch" 
+              placeholder="Search description, vendor..."
+              class="block w-full pl-9 pr-3 py-2 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all"
+            >
+          </div>
+
+          <!-- Category filter -->
+          <div>
+            <select id="filterCategory" class="block w-full px-3 py-2 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all">
+              <!-- Dynamically populated in UI.js -->
+            </select>
+          </div>
+
+          <!-- Date filter -->
+          <div>
+            <select id="filterDateRange" class="block w-full px-3 py-2 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all">
+              <option value="all">All Dates</option>
+              <option value="today">Today</option>
+              <option value="this-week">This Week</option>
+              <option value="this-month">This Month</option>
+            </select>
+          </div>
+
+          <!-- Payment filter -->
+          <div>
+            <select id="filterPaymentMethod" class="block w-full px-3 py-2 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all">
+              <!-- Dynamically populated in UI.js -->
+            </select>
+          </div>
+
+          <!-- Sort filter -->
+          <div>
+            <select id="historySortBy" class="block w-full px-3 py-2 text-xs font-medium text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500 transition-all">
+              <option value="date-desc">Sort: Newest First</option>
+              <option value="date-asc">Sort: Oldest First</option>
+              <option value="amount-desc">Sort: Amount (High to Low)</option>
+              <option value="amount-asc">Sort: Amount (Low to High)</option>
+            </select>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- Desktop Table View -->
+      <div class="hidden md:block bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200/80 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th class="px-4 py-3.5">Date</th>
+                <th class="px-4 py-3.5">Category</th>
+                <th class="px-4 py-3.5">Description</th>
+                <th class="px-4 py-3.5">Amount</th>
+                <th class="px-4 py-3.5">Payment</th>
+                <th class="px-4 py-3.5">Vendor</th>
+                <th class="px-4 py-3.5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="historyTableBody" class="divide-y divide-slate-100">
+              <!-- Populated dynamically in UI.js -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Mobile Cards View -->
+      <div id="historyMobileCards" class="md:hidden space-y-3">
+        <!-- Populated dynamically in UI.js -->
+      </div>
+
+    </div>
+
+    <!-- ========================================================================= -->
+    <!-- 4. MONTHLY REPORT VIEW (Requirement 6) -->
+    <!-- ========================================================================= -->
+    <div id="tab-reports" class="tab-view hidden space-y-6">
+
+      <!-- Report Header & Controls -->
+      <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h2 class="text-xl font-black text-slate-900">Monthly Expense Report</h2>
+            <p class="text-xs text-slate-500">Comprehensive summary, breakdown, and export for any month</p>
+          </div>
+          
+          <!-- Month & Year Selector Controls -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <select id="reportMonthSelect" class="px-3.5 py-2 text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer">
+              <!-- Dynamically populated -->
+            </select>
+            <select id="reportYearSelect" class="px-3.5 py-2 text-sm font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-blue-500 cursor-pointer">
+              <!-- Dynamically populated -->
+            </select>
+          </div>
+        </div>
+
+        <!-- Export & Email Action Buttons -->
+        <div class="flex items-center gap-2.5 mt-4 pt-4 border-t border-slate-100 flex-wrap">
+          <button id="downloadMonthlyReportBtn" class="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+            <i data-lucide="download" class="w-4 h-4"></i> Download CSV
+          </button>
+          <button onclick="UI.printMonthlyReport()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5">
+            <i data-lucide="printer" class="w-4 h-4"></i> Print / PDF Report
+          </button>
+          <button id="emailMonthlyReportBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm shadow-blue-500/20">
+            <i data-lucide="mail" class="w-4 h-4"></i> Email Monthly Report
+          </button>
+        </div>
+      </div>
+
+      <!-- Report KPI Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        <div class="bg-blue-600 rounded-2xl p-5 text-white shadow-lg shadow-blue-600/15">
+          <span class="text-xs uppercase font-bold tracking-wider text-blue-200">Total Expenditure</span>
+          <div id="reportTotalExpense" class="text-2xl sm:text-3xl font-black mt-1">₹0</div>
+          <p class="text-xs text-blue-100 mt-1">Selected month</p>
+        </div>
+
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+          <span class="text-xs uppercase font-bold tracking-wider text-slate-400">Total Transactions</span>
+          <div id="reportTransactionCount" class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">0</div>
+          <p class="text-xs text-slate-400 mt-1">Logged entries</p>
+        </div>
+
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+          <span class="text-xs uppercase font-bold tracking-wider text-slate-400">Daily Average</span>
+          <div id="reportAvgDaily" class="text-2xl sm:text-3xl font-black text-slate-900 mt-1">₹0</div>
+          <p class="text-xs text-slate-400 mt-1">Average per active day</p>
+        </div>
+
+        <div class="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-sm">
+          <span class="text-xs uppercase font-bold tracking-wider text-slate-400">Highest Expense</span>
+          <div id="reportHighestExpense" class="text-2xl sm:text-3xl font-black text-rose-600 mt-1">₹0</div>
+          <p class="text-xs text-slate-400 mt-1">Peak single transaction</p>
+        </div>
+
+      </div>
+
+      <!-- Detailed Breakdown Grids -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        <!-- Category Breakdown -->
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm">
+          <h3 class="text-base font-bold text-slate-900 mb-4 flex items-center justify-between">
+            <span>Category-wise Breakdown</span>
+            <i data-lucide="pie-chart" class="w-4 h-4 text-slate-400"></i>
+          </h3>
+          <div id="reportCategoryBreakdown" class="space-y-4">
+            <!-- Populated dynamically in UI.js -->
+          </div>
+        </div>
+
+        <!-- Daily Expense Activity List -->
+        <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-sm">
+          <h3 class="text-base font-bold text-slate-900 mb-4 flex items-center justify-between">
+            <span>Daily Breakdown</span>
+            <i data-lucide="calendar" class="w-4 h-4 text-slate-400"></i>
+          </h3>
+          <div id="reportDailyBreakdown" class="divide-y divide-slate-100 max-h-96 overflow-y-auto pr-1">
+            <!-- Populated dynamically in UI.js -->
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ========================================================================= -->
+  <!-- MOBILE BOTTOM NAVIGATION (Mobile-first design) -->
+  <!-- ========================================================================= -->
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-slate-200 safe-bottom shadow-lg">
+    <div class="grid grid-cols-4 h-16">
+      <button data-tab="dashboard" class="mobile-nav-btn flex flex-col items-center justify-center text-blue-600 font-bold transition-colors">
+        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-1">Dashboard</span>
+      </button>
+      <button data-tab="add-expense" class="mobile-nav-btn flex flex-col items-center justify-center text-slate-500 transition-colors">
+        <div class="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/30 -mt-2">
+          <i data-lucide="plus" class="w-5 h-5"></i>
+        </div>
+        <span class="text-[10px] mt-0.5">Add</span>
+      </button>
+      <button data-tab="history" class="mobile-nav-btn flex flex-col items-center justify-center text-slate-500 transition-colors">
+        <i data-lucide="history" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-1">History</span>
+      </button>
+      <button data-tab="reports" class="mobile-nav-btn flex flex-col items-center justify-center text-slate-500 transition-colors">
+        <i data-lucide="bar-chart-2" class="w-5 h-5"></i>
+        <span class="text-[10px] mt-1">Reports</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ========================================================================= -->
+  <!-- MODALS -->
+  <!-- ========================================================================= -->
+
+  <!-- 1. Settings & Google Sheets Configuration Modal (Requirement 2) -->
+  <div id="settingsModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl space-y-5 animate-in fade-in zoom-in-95 duration-200">
+      
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+            <i data-lucide="settings" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-slate-900">Google Sheets Integration</h3>
+            <p class="text-xs text-slate-500">Configure your Google Sheets & Apps Script backend</p>
+          </div>
+        </div>
+        <button onclick="UI.closeSettingsModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        
+        <div>
+          <label for="settingsSheetId" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+            Google Sheet ID
+          </label>
+          <input 
+            type="text" 
+            id="settingsSheetId" 
+            placeholder="e.g. 1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+            class="block w-full px-3.5 py-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500"
+          >
+          <p class="text-[10px] text-slate-400 mt-1">Found in your Google Sheet URL between <code>/d/</code> and <code>/edit</code></p>
+        </div>
+
+        <div>
+          <label for="settingsScriptUrl" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+            Google Apps Script Web App URL <span class="text-rose-500">*</span>
+          </label>
+          <input 
+            type="url" 
+            id="settingsScriptUrl" 
+            placeholder="https://script.google.com/macros/s/AKfycbz.../exec"
+            class="block w-full px-3.5 py-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500"
+          >
+          <p class="text-[10px] text-slate-400 mt-1">Obtained by deploying your Apps Script project as a Web App</p>
+        </div>
+
+        <div>
+          <label for="settingsEmail" class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+            Email Address for Notifications
+          </label>
+          <input 
+            type="email" 
+            id="settingsEmail" 
+            placeholder="you@example.com"
+            class="block w-full px-3.5 py-2.5 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500"
+          >
+          <p class="text-[10px] text-slate-400 mt-1">Receives instant expense alerts and daily summaries</p>
+        </div>
+
+        <div id="testConnectionStatus" class="min-h-[20px] text-xs"></div>
+
+        <div class="flex items-center gap-2 pt-2">
+          <button type="button" id="testConnectionBtn" class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+            <i data-lucide="zap" class="w-4 h-4 text-amber-500"></i> Test Connection
+          </button>
+          <button type="button" id="saveSettingsBtn" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-md shadow-blue-500/20">
+            Save Settings
+          </button>
+        </div>
+
+        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
+          <button onclick="UI.openSetupGuideModal()" class="text-blue-600 font-semibold hover:underline flex items-center gap-1">
+            <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Read Setup Instructions
+          </button>
+          <button onclick="window.DataStore.resetToSampleData(); UI.renderDashboard(); UI.renderHistoryTable(); UI.showToast('Sample demo data restored!', 'success');" class="text-slate-400 hover:text-slate-600">
+            Reload Demo Data
+          </button>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 2. Step-by-Step Setup Guide Modal (Requirement 13) -->
+  <div id="setupGuideModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+      
+      <div class="p-6 border-b border-slate-100 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold">
+            <i data-lucide="book-open" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-slate-900">Google Sheet Setup Instructions</h3>
+            <p class="text-xs text-slate-500">10-minute setup for permanent cloud sync & instant emails</p>
+          </div>
+        </div>
+        <button onclick="UI.closeSetupGuideModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-4 text-xs text-slate-700 leading-relaxed">
+        
+        <div class="bg-blue-50 border border-blue-100 rounded-2xl p-4 text-blue-900">
+          <h4 class="font-bold mb-1 text-sm">Required Google Sheet Columns</h4>
+          <p class="text-xs text-blue-800 mb-2">Create a new spreadsheet at <code>sheets.new</code> named <b>Daily Expenses</b> with these 11 exact columns in Row 1:</p>
+          <div class="bg-white/80 p-2.5 rounded-xl font-mono text-[11px] text-blue-950 select-all border border-blue-200">
+            Timestamp, Date, Category, Description, Amount, Payment Method, Vendor, Notes, Receipt, Month, Year
+          </div>
+        </div>
+
+        <ol class="space-y-3 list-decimal pl-4">
+          <li><b>Open Apps Script:</b> In your Google Sheet, click <b>Extensions &rarr; Apps Script</b>.</li>
+          <li><b>Paste Backend Code:</b> Clear any code in <code>Code.gs</code>, open this project's <code class="bg-slate-100 px-1 py-0.5 rounded">google-apps-script/Code.gs</code> file, and paste the entire code.</li>
+          <li><b>Run Auto-Setup:</b> Select function <code class="bg-slate-100 px-1 py-0.5 rounded font-bold">setupSheet</code> in the Apps Script toolbar and click <b>▶ Run</b> to automatically create and style the headers!</li>
+          <li><b>Deploy as Web App:</b> Click <b>Deploy &rarr; New deployment</b>.
+            <ul class="list-disc pl-4 mt-1 space-y-0.5 text-slate-600">
+              <li>Select type: <b>Web app</b></li>
+              <li>Execute as: <b>Me (your email)</b></li>
+              <li>Who has access: <b>Anyone</b></li>
+            </ul>
+          </li>
+          <li><b>Copy Web App URL:</b> Copy the deployed Web App URL (starts with <code>https://script.google.com/macros/s/.../exec</code>).</li>
+          <li><b>Paste in Settings:</b> Open Settings in this web app, paste the URL, Sheet ID, and your email, then click <b>Test Connection</b> and <b>Save</b>!</li>
+          <li><b>Schedule Daily Digest (Optional):</b> In Apps Script, run function <code class="bg-slate-100 px-1 py-0.5 rounded font-bold">createDailySummaryTrigger</code> to receive automatic 9:00 PM email summaries daily.</li>
+        </ol>
+
+      </div>
+
+      <div class="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+        <button onclick="UI.closeSetupGuideModal()" class="px-5 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800">
+          Got it, Close Guide
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 3. Edit Expense Modal -->
+  <div id="editExpenseModal" class="hidden fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+      
+      <div class="flex items-center justify-between">
+        <h3 class="text-lg font-black text-slate-900">Edit Expense</h3>
+        <button onclick="UI.closeEditModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="editExpenseForm" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Amount (₹)</label>
+          <input type="number" id="editExpenseAmount" step="any" required class="block w-full px-3.5 py-2 text-base font-bold text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none focus:border-blue-500">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Date</label>
+            <input type="date" id="editExpenseDate" required class="block w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Category</label>
+            <select id="editExpenseCategory" class="block w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none">
+              <!-- Populated -->
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Description</label>
+          <input type="text" id="editExpenseDescription" class="block w-full px-3.5 py-2 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Payment Method</label>
+            <select id="editExpensePaymentMethod" class="block w-full px-3 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none">
+              <!-- Populated -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">Vendor / Paid To</label>
+            <input type="text" id="editExpenseVendor" class="block w-full px-3 py-2 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-slate-600 mb-1">Notes</label>
+          <input type="text" id="editExpenseNotes" class="block w-full px-3.5 py-2 text-xs text-slate-800 bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:outline-none">
+        </div>
+
+        <div class="flex items-center gap-2 pt-2">
+          <button type="button" onclick="UI.closeEditModal()" class="flex-1 py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">
+            Cancel
+          </button>
+          <button type="submit" class="flex-1 py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-500/20">
+            Save Changes
+          </button>
+        </div>
+      </form>
+
+    </div>
+  </div>
+
+  <!-- 4. Receipt Preview Modal -->
+  <div id="receiptModal" class="hidden fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-sm items-center justify-center p-4">
+    <div class="bg-white rounded-3xl max-w-lg w-full p-5 shadow-2xl space-y-4 animate-in fade-in zoom-in-95 duration-200">
+      <div class="flex items-center justify-between">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="paperclip" class="w-4 h-4 text-blue-600"></i> Receipt Attachment
+        </h3>
+        <button onclick="UI.closeReceiptModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div id="receiptPreviewContainer" class="flex items-center justify-center min-h-[160px] bg-slate-50 rounded-2xl p-2 border border-slate-100">
+        <!-- Image or link placed here -->
+      </div>
+      <div class="flex justify-end">
+        <button onclick="UI.closeReceiptModal()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold">
+          Close
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

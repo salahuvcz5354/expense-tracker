@@ -1,0 +1,13 @@
+Timestamp,Date,Category,Description,Amount,Payment Method,Vendor,Notes,Receipt,Month,Year
+2026-10-01 08:30:00,2026-10-01,Petrol / Fuel,Petrol for bike,500,UPI,BPCL,Full tank speed petrol,,October,2026
+2026-10-01 13:15:00,2026-10-01,Food,Lunch with team,450,UPI,Bawarchi Restaurant,Split with Rahul,,October,2026
+2026-10-01 15:40:00,2026-10-01,Travel,Auto rickshaw to client office,300,Cash,Ola Auto,Client visit,,October,2026
+2026-10-01 17:00:00,2026-10-01,Shopping,Groceries for home,600,Credit Card,Reliance Smart,Vegetables and fruits,,October,2026
+2026-09-30 19:20:00,2026-09-30,Bills,Electricity bill,2400,UPI,BESCOM,Online bill payment,,September,2026
+2026-09-28 10:00:00,2026-09-28,Rent / Home,Monthly apartment rent,15000,Bank Transfer,Landlord,October rent advance,,September,2026
+2026-09-25 14:10:00,2026-09-25,Medical,Pharmacy medicines,850,Debit Card,Apollo Pharmacy,Doctor prescription,,September,2026
+2026-09-22 18:30:00,2026-09-22,Entertainment,Movie tickets & snacks,950,Credit Card,PVR Cinemas,Weekend movie,,September,2026
+2026-09-20 11:00:00,2026-09-20,Vehicle,Bike routine service & oil change,2200,UPI,Honda Service Center,Engine oil replaced,,September,2026
+2026-09-15 16:45:00,2026-09-15,Food,Dinner with family,1800,Credit Card,Barbeque Nation,Family celebration,,September,2026
+2026-09-10 12:00:00,2026-09-10,EMI / Loan,Car loan monthly EMI,8500,Bank Transfer,HDFC Bank,Auto debit,,September,2026
+2026-09-05 09:30:00,2026-09-05,Petrol / Fuel,Petrol for car,3500,Credit Card,HP Petrol Pump,Highway trip tank,,September,2026
