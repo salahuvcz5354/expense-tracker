@@ -819,23 +819,65 @@ const UI = {
   },
 
   /**
-   * Confirm Delete Expense
-   */
-  confirmDeleteExpense(id) {
-    if (confirm('Are you sure you want to delete this expense record?')) {
-      const expenses = window.DataStore.getExpenses();
-      const exp = expenses.find(e => e.id === id || e.timestamp === id);
-      
-      // Delete locally
-      window.DataStore.deleteExpense(id);
-      
-      // If synced with Google Sheet, trigger remote delete
-      if (window.ApiClient && exp && exp.timestamp) {
-        window.ApiClient.deleteExpense(exp.timestamp, exp.rowIndex).catch(err => {
-          console.warn('Failed to delete on remote sheet:', err);
-        });
-      }
+ * Confirm and restore demo/sample data
+ */
+confirmResetDemoData() {
+  const confirmed = confirm(
+    'Reset Demo Data?\n\n' +
+    'This will replace your current locally saved expenses with the original demo data.\n\n' +
+    'Your Google Sheet data will NOT be deleted.'
+  );
 
+  if (!confirmed) {
+    return;
+  }
+
+  window.DataStore.resetToSampleData();
+
+  this.renderDashboard();
+  this.renderHistoryTable();
+  this.renderMonthlyReport();
+
+  this.showToast(
+    'Demo data has been restored successfully.',
+    'success'
+  );
+},
+
+/**
+ * Confirm and delete all locally saved expense data
+ */
+confirmDeleteAllData() {
+  const confirmed = confirm(
+    'Delete ALL Saved Data?\n\n' +
+    'This will permanently remove all expense records saved in this browser.\n\n' +
+    'This action cannot be undone.\n\n' +
+    'Your Google Sheet data will NOT be deleted.'
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  const success = window.DataStore.clearAllExpenses();
+
+  if (!success) {
+    this.showToast(
+      'Failed to delete saved data.',
+      'error'
+    );
+    return;
+  }
+
+  this.renderDashboard();
+  this.renderHistoryTable();
+  this.renderMonthlyReport();
+
+  this.showToast(
+    'All locally saved expense data has been deleted.',
+    'success'
+  );
+},
       this.showToast('Expense deleted successfully.', 'success');
       this.renderDashboard();
       this.renderHistoryTable();
