@@ -818,7 +818,7 @@ const UI = {
     }
   },
 
-  /**
+/**
  * Confirm and restore demo/sample data
  */
 confirmResetDemoData() {
@@ -828,18 +828,51 @@ confirmResetDemoData() {
     'Your Google Sheet data will NOT be deleted.'
   );
 
-  if (!confirmed) {
-    return;
-  }
+  if (!confirmed) return;
 
   window.DataStore.resetToSampleData();
 
   this.renderDashboard();
   this.renderHistoryTable();
-  this.renderMonthlyReport();
+
+  if (typeof this.renderMonthlyReport === 'function') {
+    this.renderMonthlyReport();
+  }
 
   this.showToast(
     'Demo data has been restored successfully.',
+    'success'
+  );
+},
+
+/**
+ * Confirm and delete all locally saved expense data
+ */
+confirmDeleteAllData() {
+  const confirmed = confirm(
+    'Delete ALL Saved Data?\n\n' +
+    'All expense records saved in this browser will be permanently deleted.\n\n' +
+    'This action cannot be undone.'
+  );
+
+  if (!confirmed) return;
+
+  const success = window.DataStore.clearAllExpenses();
+
+  if (!success) {
+    this.showToast('Failed to delete saved data.', 'error');
+    return;
+  }
+
+  this.renderDashboard();
+  this.renderHistoryTable();
+
+  if (typeof this.renderMonthlyReport === 'function') {
+    this.renderMonthlyReport();
+  }
+
+  this.showToast(
+    'All saved expense data has been deleted.',
     'success'
   );
 },
