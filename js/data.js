@@ -239,21 +239,27 @@ const DataStore = {
    * Get all expenses from localStorage or initialize with sample data
    */
   getExpenses() {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEYS.EXPENSES);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.EXPENSES);
+
+    // If storage exists, return it even when the array is empty.
+    // This prevents deleted data from being automatically replaced
+    // with dummy/sample data.
+    if (stored !== null) {
+      const parsed = JSON.parse(stored);
+
+      if (Array.isArray(parsed)) {
+        return parsed;
       }
-    } catch (e) {
-      console.error('Failed to read expenses from storage', e);
     }
-    // Initialize with sample data if empty
-    this.saveExpenses(INITIAL_SAMPLE_EXPENSES);
-    return [...INITIAL_SAMPLE_EXPENSES];
-  },
+  } catch (e) {
+    console.error('Failed to read expenses from storage', e);
+  }
+
+  // First-time user: create demo/sample data
+  this.saveExpenses(INITIAL_SAMPLE_EXPENSES);
+  return [...INITIAL_SAMPLE_EXPENSES];
+},
 
   /**
    * Save expenses array to localStorage
@@ -361,13 +367,17 @@ const DataStore = {
   },
 
   /**
-   * Clear all local expense records
-   */
-  clearAllExpenses() {
-    this.saveExpenses([]);
-    return [];
-  },
-
+ * Delete all locally saved expense records
+ */
+clearAllExpenses() {
+  try {
+    localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify([]));
+    return true;
+  } catch (e) {
+    console.error('Failed to clear all expenses:', e);
+    return false;
+  }
+},
   /**
    * Merge or replace with records loaded from Google Sheets
    */
