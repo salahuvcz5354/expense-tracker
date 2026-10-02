@@ -2,11 +2,9 @@
  * UI Controller & Rendering Engine
  * Handles tabs, modals, notifications, dashboard cards, history tables, and monthly reports
  */
-
 const UI = {
   activeTab: 'dashboard',
   currentEditingId: null,
-
   /**
    * Initialize UI icons and event hooks
    */
@@ -17,7 +15,6 @@ const UI = {
     this.populateMonthYearSelectors();
     this.updateConnectionStatusBadge();
   },
-
   /**
    * Render Lucide icons
    */
@@ -26,13 +23,11 @@ const UI = {
       window.lucide.createIcons();
     }
   },
-
   /**
    * Switch active navigation tab
    */
   switchTab(tabId) {
     this.activeTab = tabId;
-
     // Update tab content visibility
     const views = document.querySelectorAll('.tab-view');
     views.forEach(v => {
@@ -42,7 +37,6 @@ const UI = {
         v.classList.add('hidden');
       }
     });
-
     // Update active state in desktop header navigation
     const navButtons = document.querySelectorAll('.nav-btn');
     navButtons.forEach(btn => {
@@ -54,7 +48,6 @@ const UI = {
         btn.classList.add('text-slate-600', 'hover:bg-slate-100');
       }
     });
-
     // Update active state in mobile bottom navigation
     const mobileNavButtons = document.querySelectorAll('.mobile-nav-btn');
     mobileNavButtons.forEach(btn => {
@@ -66,10 +59,8 @@ const UI = {
         btn.classList.add('text-slate-500');
       }
     });
-
     // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
-
     // Refresh charts if switching to dashboard
     if (tabId === 'dashboard') {
       setTimeout(() => {
@@ -80,28 +71,23 @@ const UI = {
     } else if (tabId === 'reports') {
       this.renderMonthlyReport();
     }
-
     this.initLucideIcons();
   },
-
   /**
    * Show Toast Notification
    */
   showToast(message, type = 'success', duration = 3500) {
     const container = document.getElementById('toast-container');
     if (!container) return;
-
     const toast = document.createElement('div');
     toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl shadow-xl text-white transform transition-all duration-300 translate-y-3 opacity-0 text-sm font-medium z-50 ${
       type === 'success' ? 'bg-emerald-600' :
       type === 'error' ? 'bg-rose-600' :
       type === 'warning' ? 'bg-amber-600' : 'bg-slate-800'
     }`;
-
     const iconName = type === 'success' ? 'check-circle' :
                      type === 'error' ? 'alert-triangle' :
                      type === 'warning' ? 'alert-circle' : 'info';
-
     toast.innerHTML = `
       <i data-lucide="${iconName}" class="w-5 h-5 flex-shrink-0"></i>
       <span class="flex-1">${message}</span>
@@ -109,16 +95,13 @@ const UI = {
         <i data-lucide="x" class="w-4 h-4"></i>
       </button>
     `;
-
     container.appendChild(toast);
     this.initLucideIcons();
-
     // Trigger animate in
     requestAnimationFrame(() => {
       toast.classList.remove('translate-y-3', 'opacity-0');
       toast.classList.add('translate-y-0', 'opacity-100');
     });
-
     // Auto remove
     setTimeout(() => {
       toast.classList.remove('translate-y-0', 'opacity-100');
@@ -126,7 +109,6 @@ const UI = {
       setTimeout(() => toast.remove(), 300);
     }, duration);
   },
-
   /**
    * Populate category selects and chips
    */
@@ -134,11 +116,9 @@ const UI = {
     const select = document.getElementById('expenseCategory');
     const filterSelect = document.getElementById('filterCategory');
     const editSelect = document.getElementById('editExpenseCategory');
-
     const optionsHtml = window.CATEGORIES.map(c => 
       `<option value="${c.name}">${c.name}</option>`
     ).join('');
-
     if (select) {
       select.innerHTML = '<option value="" disabled selected>Select Category...</option>' + optionsHtml;
     }
@@ -149,7 +129,6 @@ const UI = {
       editSelect.innerHTML = optionsHtml;
     }
   },
-
   /**
    * Populate payment method selects
    */
@@ -157,11 +136,9 @@ const UI = {
     const select = document.getElementById('expensePaymentMethod');
     const filterSelect = document.getElementById('filterPaymentMethod');
     const editSelect = document.getElementById('editExpensePaymentMethod');
-
     const optionsHtml = window.PAYMENT_METHODS.map(p => 
       `<option value="${p.name}">${p.name}</option>`
     ).join('');
-
     if (select) {
       select.innerHTML = optionsHtml;
       select.value = 'UPI'; // Sensible default
@@ -173,25 +150,21 @@ const UI = {
       editSelect.innerHTML = optionsHtml;
     }
   },
-
   /**
    * Populate Month & Year selector for Monthly Reports
    */
   populateMonthYearSelectors() {
     const monthSelect = document.getElementById('reportMonthSelect');
     const yearSelect = document.getElementById('reportYearSelect');
-
     const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     const now = new Date();
     const currentMonthIdx = now.getMonth();
     const currentYear = now.getFullYear();
-
     if (monthSelect) {
       monthSelect.innerHTML = monthNames.map((m, idx) => 
         `<option value="${m}" ${idx === currentMonthIdx ? 'selected' : ''}>${m}</option>`
       ).join('');
     }
-
     if (yearSelect) {
       const years = [currentYear - 1, currentYear, currentYear + 1];
       yearSelect.innerHTML = years.map(y => 
@@ -199,24 +172,20 @@ const UI = {
       ).join('');
     }
   },
-
   /**
    * Quick Expense button clicked (+ Petrol, + Food, etc.)
    */
   handleQuickExpense(categoryName) {
     this.switchTab('add-expense');
-    
     const catSelect = document.getElementById('expenseCategory');
     if (catSelect) {
       catSelect.value = categoryName;
     }
-
     // Default date to today
     const dateInput = document.getElementById('expenseDate');
     if (dateInput && !dateInput.value) {
       dateInput.value = new Date().toISOString().split('T')[0];
     }
-
     // Focus on amount for immediate numeric entry
     const amountInput = document.getElementById('expenseAmount');
     if (amountInput) {
@@ -226,14 +195,12 @@ const UI = {
       }, 150);
     }
   },
-
   /**
    * Render Dashboard Statistics & Cards
    */
   renderDashboard() {
     const expenses = window.DataStore.getExpenses();
     const stats = window.DataStore.calculateStats(expenses);
-
     // Main KPI cards
     const todayEl = document.getElementById('statTodayTotal');
     const weekEl = document.getElementById('statWeekTotal');
@@ -242,7 +209,6 @@ const UI = {
     const avgEl = document.getElementById('statAvgDaily');
     const highEl = document.getElementById('statHighest');
     const highDescEl = document.getElementById('statHighestDesc');
-
     if (todayEl) todayEl.textContent = window.DataStore.formatINR(stats.todayTotal);
     if (weekEl) weekEl.textContent = window.DataStore.formatINR(stats.thisWeekTotal);
     if (monthEl) monthEl.textContent = window.DataStore.formatINR(stats.thisMonthTotal);
@@ -254,27 +220,21 @@ const UI = {
         `${stats.highestExpense.category} • ${stats.highestExpense.description || 'No desc'}` : 
         'No transactions yet';
     }
-
     // Render Category-wise summary cards
     this.renderCategoryCards(stats);
-
     // Render Recent 5 Transactions in dashboard
     this.renderRecentTransactions(expenses);
-
     // Refresh charts
     window.ChartManager.updateAllCharts();
   },
-
   /**
    * Render Category-wise summary cards with progress bars
    */
   renderCategoryCards(stats) {
     const container = document.getElementById('categoryCardsContainer');
     if (!container) return;
-
     const entries = Object.entries(stats.categoryTotals)
       .sort((a, b) => b[1] - a[1]);
-
     if (entries.length === 0) {
       container.innerHTML = `
         <div class="col-span-full py-8 text-center text-slate-400">
@@ -283,9 +243,7 @@ const UI = {
       `;
       return;
     }
-
     const totalExpense = entries.reduce((s, e) => s + e[1], 0);
-
     container.innerHTML = entries.map(([category, amount]) => {
       const catMeta = window.CATEGORIES.find(c => c.name.toLowerCase() === category.toLowerCase()) || {
         icon: 'tag',
@@ -293,7 +251,6 @@ const UI = {
         bg: '#f8fafc'
       };
       const percentage = totalExpense > 0 ? ((amount / totalExpense) * 100).toFixed(1) : 0;
-
       return `
         <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm hover:shadow-md transition-all">
           <div class="flex items-center justify-between mb-3">
@@ -317,19 +274,15 @@ const UI = {
         </div>
       `;
     }).join('');
-
     this.initLucideIcons();
   },
-
   /**
    * Render Recent Transactions on the Dashboard
    */
   renderRecentTransactions(expenses) {
     const container = document.getElementById('recentTransactionsContainer');
     if (!container) return;
-
     const recent = expenses.slice(0, 5);
-
     if (recent.length === 0) {
       container.innerHTML = `
         <div class="text-center py-8 text-slate-400">
@@ -340,14 +293,12 @@ const UI = {
       this.initLucideIcons();
       return;
     }
-
     container.innerHTML = recent.map(exp => {
       const catMeta = window.CATEGORIES.find(c => c.name.toLowerCase() === (exp.category || '').toLowerCase()) || {
         icon: 'tag',
         color: '#64748b',
         bg: '#f8fafc'
       };
-
       return `
         <div class="flex items-center justify-between p-3.5 hover:bg-slate-50 rounded-xl transition-colors border-b border-slate-100 last:border-b-0">
           <div class="flex items-center gap-3">
@@ -375,10 +326,8 @@ const UI = {
         </div>
       `;
     }).join('');
-
     this.initLucideIcons();
   },
-
   /**
    * Render Filtered Expense History Table & Cards
    */
@@ -388,14 +337,12 @@ const UI = {
     const mobileCards = document.getElementById('historyMobileCards');
     const countBadge = document.getElementById('historyCountBadge');
     const totalBadge = document.getElementById('historyTotalBadge');
-
     // Get filter values
     const searchVal = (document.getElementById('historySearch')?.value || '').toLowerCase().trim();
     const categoryVal = document.getElementById('filterCategory')?.value || '';
     const paymentVal = document.getElementById('filterPaymentMethod')?.value || '';
     const dateFilterVal = document.getElementById('filterDateRange')?.value || 'all';
     const sortBy = document.getElementById('historySortBy')?.value || 'date-desc';
-
     // Apply filtering
     let filtered = expenses.filter(exp => {
       // Search text match (desc, vendor, category, notes)
@@ -408,40 +355,33 @@ const UI = {
           return false;
         }
       }
-
       // Category filter
       if (categoryVal && exp.category !== categoryVal) {
         return false;
       }
-
       // Payment filter
       if (paymentVal && exp.paymentMethod !== paymentVal) {
         return false;
       }
-
       // Date range filter
       if (dateFilterVal !== 'all' && exp.date) {
         const now = new Date();
         const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-        
         if (dateFilterVal === 'today' && exp.date !== todayStr) {
           return false;
         }
-
         if (dateFilterVal === 'this-month') {
           const parts = exp.date.split('-');
           if (parseInt(parts[0], 10) !== now.getFullYear() || parseInt(parts[1], 10) !== (now.getMonth() + 1)) {
             return false;
           }
         }
-
         if (dateFilterVal === 'this-week') {
           const dayOfWeek = now.getDay();
           const dist = (dayOfWeek + 6) % 7;
           const startOfWeek = new Date(now);
           startOfWeek.setDate(now.getDate() - dist);
           startOfWeek.setHours(0, 0, 0, 0);
-          
           const parts = exp.date.split('-');
           const expDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
           if (expDate < startOfWeek || expDate > now) {
@@ -449,10 +389,8 @@ const UI = {
           }
         }
       }
-
       return true;
     });
-
     // Apply Sorting
     filtered.sort((a, b) => {
       if (sortBy === 'date-desc') {
@@ -469,12 +407,10 @@ const UI = {
       }
       return 0;
     });
-
     // Calculate totals for filtered list
     const filteredTotal = filtered.reduce((s, e) => s + (Number(e.amount) || 0), 0);
     if (countBadge) countBadge.textContent = `${filtered.length} expenses`;
     if (totalBadge) totalBadge.textContent = `Total: ${window.DataStore.formatINR(filteredTotal)}`;
-
     if (filtered.length === 0) {
       const emptyState = `
         <div class="text-center py-12 text-slate-400">
@@ -488,7 +424,6 @@ const UI = {
       this.initLucideIcons();
       return;
     }
-
     // Desktop Table Rows
     if (tableBody) {
       tableBody.innerHTML = filtered.map(exp => {
@@ -497,7 +432,6 @@ const UI = {
           color: '#64748b',
           bg: '#f8fafc'
         };
-
         return `
           <tr class="hover:bg-slate-50/80 transition-colors border-b border-slate-100">
             <td class="px-4 py-3.5 text-sm text-slate-700 whitespace-nowrap font-medium">
@@ -541,7 +475,6 @@ const UI = {
         `;
       }).join('');
     }
-
     // Mobile Cards View
     if (mobileCards) {
       mobileCards.innerHTML = filtered.map(exp => {
@@ -550,7 +483,6 @@ const UI = {
           color: '#64748b',
           bg: '#f8fafc'
         };
-
         return `
           <div class="bg-white border border-slate-200/80 rounded-2xl p-4 shadow-sm space-y-3">
             <div class="flex items-start justify-between">
@@ -567,14 +499,12 @@ const UI = {
                 <span class="text-base font-bold text-slate-900">${window.DataStore.formatINR(exp.amount)}</span>
               </div>
             </div>
-
             ${(exp.vendor || exp.notes) ? `
               <div class="bg-slate-50 rounded-xl p-2.5 text-xs text-slate-600 space-y-1">
                 ${exp.vendor ? `<div><span class="font-semibold text-slate-700">Vendor:</span> ${exp.vendor}</div>` : ''}
                 ${exp.notes ? `<div><span class="font-semibold text-slate-700">Notes:</span> ${exp.notes}</div>` : ''}
               </div>
             ` : ''}
-
             <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
               <span class="px-2 py-0.5 rounded font-medium text-slate-700 bg-slate-100">${exp.category}</span>
               <div class="flex items-center gap-2">
@@ -595,10 +525,8 @@ const UI = {
         `;
       }).join('');
     }
-
     this.initLucideIcons();
   },
-
   /**
    * Render Monthly Report View
    */
@@ -606,10 +534,8 @@ const UI = {
     const expenses = window.DataStore.getExpenses();
     const monthSelect = document.getElementById('reportMonthSelect');
     const yearSelect = document.getElementById('reportYearSelect');
-
     const selectedMonth = monthSelect ? monthSelect.value : 'October';
     const selectedYear = yearSelect ? parseInt(yearSelect.value, 10) : 2026;
-
     // Filter expenses matching selected month and year
     const monthlyExpenses = expenses.filter(exp => {
       // Check month property or date string
@@ -627,22 +553,18 @@ const UI = {
       }
       return false;
     });
-
     let total = 0;
     const categoryTotals = {};
     const dailyTotals = {};
     let highest = { amount: 0, category: '—', description: '', date: '' };
-
     monthlyExpenses.forEach(exp => {
       const amt = Number(exp.amount) || 0;
       total += amt;
       const cat = exp.category || 'Other';
       categoryTotals[cat] = (categoryTotals[cat] || 0) + amt;
-
       if (exp.date) {
         dailyTotals[exp.date] = (dailyTotals[exp.date] || 0) + amt;
       }
-
       if (amt > highest.amount) {
         highest = {
           amount: amt,
@@ -652,21 +574,17 @@ const UI = {
         };
       }
     });
-
     const activeDaysCount = Object.keys(dailyTotals).length;
     const avgDaily = activeDaysCount > 0 ? Math.round(total / activeDaysCount) : 0;
-
     // Update Report Summary Cards
     const totalEl = document.getElementById('reportTotalExpense');
     const countEl = document.getElementById('reportTransactionCount');
     const avgEl = document.getElementById('reportAvgDaily');
     const highestEl = document.getElementById('reportHighestExpense');
-
     if (totalEl) totalEl.textContent = window.DataStore.formatINR(total);
     if (countEl) countEl.textContent = monthlyExpenses.length;
     if (avgEl) avgEl.textContent = window.DataStore.formatINR(avgDaily);
     if (highestEl) highestEl.textContent = window.DataStore.formatINR(highest.amount);
-
     // Render Category Breakdown list
     const catContainer = document.getElementById('reportCategoryBreakdown');
     if (catContainer) {
@@ -700,7 +618,6 @@ const UI = {
         }).join('');
       }
     }
-
     // Render Daily Breakdown list
     const dailyContainer = document.getElementById('reportDailyBreakdown');
     if (dailyContainer) {
@@ -716,10 +633,8 @@ const UI = {
         `).join('');
       }
     }
-
     this.initLucideIcons();
   },
-
   /**
    * Export Monthly Report as CSV
    */
@@ -727,24 +642,19 @@ const UI = {
     const expenses = window.DataStore.getExpenses();
     const monthSelect = document.getElementById('reportMonthSelect');
     const yearSelect = document.getElementById('reportYearSelect');
-
     const selectedMonth = monthSelect ? monthSelect.value : 'October';
     const selectedYear = yearSelect ? parseInt(yearSelect.value, 10) : 2026;
-
     const monthlyExpenses = expenses.filter(exp => {
       if (exp.month && exp.month.toLowerCase() === selectedMonth.toLowerCase()) {
         if (!exp.year || parseInt(exp.year, 10) === selectedYear) return true;
       }
       return false;
     });
-
     if (monthlyExpenses.length === 0) {
       this.showToast('No expenses found for this month to download.', 'warning');
       return;
     }
-
     let csvContent = 'Timestamp,Date,Category,Description,Amount,Payment Method,Vendor,Notes,Receipt,Month,Year\n';
-
     monthlyExpenses.forEach(e => {
       const row = [
         `"${e.timestamp || ''}"`,
@@ -761,7 +671,6 @@ const UI = {
       ];
       csvContent += row.join(',') + '\n';
     });
-
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -770,17 +679,14 @@ const UI = {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-
     this.showToast(`Downloaded CSV for ${selectedMonth} ${selectedYear}`, 'success');
   },
-
   /**
    * Print / Save as PDF the Monthly Report
    */
   printMonthlyReport() {
     window.print();
   },
-
   /**
    * Open Edit Modal
    */
@@ -788,9 +694,7 @@ const UI = {
     const expenses = window.DataStore.getExpenses();
     const exp = expenses.find(e => e.id === id || e.timestamp === id);
     if (!exp) return;
-
     this.currentEditingId = id;
-
     document.getElementById('editExpenseDate').value = exp.date || '';
     document.getElementById('editExpenseCategory').value = exp.category || 'Other';
     document.getElementById('editExpenseDescription').value = exp.description || '';
@@ -798,14 +702,12 @@ const UI = {
     document.getElementById('editExpensePaymentMethod').value = exp.paymentMethod || 'UPI';
     document.getElementById('editExpenseVendor').value = exp.vendor || '';
     document.getElementById('editExpenseNotes').value = exp.notes || '';
-
     const modal = document.getElementById('editExpenseModal');
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     }
   },
-
   /**
    * Close Edit Modal
    */
@@ -817,116 +719,79 @@ const UI = {
       modal.classList.remove('flex');
     }
   },
-
 /**
- * Confirm and restore demo/sample data
- */
-confirmResetDemoData() {
-  const confirmed = confirm(
-    'Reset Demo Data?\n\n' +
-    'This will replace your current locally saved expenses with the original demo data.\n\n' +
-    'Your Google Sheet data will NOT be deleted.'
-  );
-
-  if (!confirmed) return;
-
-  window.DataStore.resetToSampleData();
-
-  this.renderDashboard();
-  this.renderHistoryTable();
-
-  if (typeof this.renderMonthlyReport === 'function') {
-    this.renderMonthlyReport();
-  }
-
-  this.showToast(
-    'Demo data has been restored successfully.',
-    'success'
-  );
-},
-
-/**
- * Confirm and delete all locally saved expense data
- */
-confirmDeleteAllData() {
-  const confirmed = confirm(
-    'Delete ALL Saved Data?\n\n' +
-    'All expense records saved in this browser will be permanently deleted.\n\n' +
-    'This action cannot be undone.'
-  );
-
-  if (!confirmed) return;
-
-  const success = window.DataStore.clearAllExpenses();
-
-  if (!success) {
-    this.showToast('Failed to delete saved data.', 'error');
-    return;
-  }
-
-  this.renderDashboard();
-  this.renderHistoryTable();
-
-  if (typeof this.renderMonthlyReport === 'function') {
-    this.renderMonthlyReport();
-  }
-
-  this.showToast(
-    'All saved expense data has been deleted.',
-    'success'
-  );
-},
-
-/**
- * Confirm and delete all locally saved expense data
- */
-confirmDeleteAllData() {
-  const confirmed = confirm(
-    'Delete ALL Saved Data?\n\n' +
-    'This will permanently remove all expense records saved in this browser.\n\n' +
-    'This action cannot be undone.\n\n' +
-    'Your Google Sheet data will NOT be deleted.'
-  );
-
-  if (!confirmed) {
-    return;
-  }
-
-  const success = window.DataStore.clearAllExpenses();
-
-  if (!success) {
-    this.showToast(
-      'Failed to delete saved data.',
-      'error'
+   * Confirm and restore demo/sample data
+   */
+  confirmResetDemoData() {
+    const confirmed = confirm(
+      'Reset Demo Data?\n\n' +
+      'This will replace your current locally saved expenses with the original demo data.\n\n' +
+      'Your Google Sheet data will NOT be deleted.'
     );
-    return;
-  }
-
-  this.renderDashboard();
-  this.renderHistoryTable();
-  this.renderMonthlyReport();
-
-  this.showToast(
-    'All locally saved expense data has been deleted.',
-    'success'
-  );
-},
+    if (!confirmed) return;
+    window.DataStore.resetToSampleData();
+    this.renderDashboard();
+    this.renderHistoryTable();
+    if (typeof this.renderMonthlyReport === 'function') {
+      this.renderMonthlyReport();
+    }
+    this.showToast(
+      'Demo data has been restored successfully.',
+      'success'
+    );
+  },
+  /**
+   * Confirm and delete all locally saved expense data
+   */
+  confirmDeleteAllData() {
+    const confirmed = confirm(
+      'Delete ALL Saved Data?\n\n' +
+      'This will permanently remove all expense records saved in this browser.\n\n' +
+      'This action cannot be undone.\n\n' +
+      'Your Google Sheet data will NOT be deleted.'
+    );
+    if (!confirmed) return;
+    const success = window.DataStore.clearAllExpenses();
+    if (!success) {
+      this.showToast('Failed to delete saved data.', 'error');
+      return;
+    }
+    this.renderDashboard();
+    this.renderHistoryTable();
+    if (typeof this.renderMonthlyReport === 'function') {
+      this.renderMonthlyReport();
+    }
+    this.showToast(
+      'All locally saved expense data has been deleted.',
+      'success'
+    );
+  },
+  /**
+   * Confirm and delete one expense
+   */
+  confirmDeleteExpense(id) {
+    const confirmed = confirm(
+      'Delete this expense?\n\n' +
+      'This action cannot be undone.'
+    );
+    if (!confirmed) return;
+    const success = window.DataStore.deleteExpense(id);
+    if (success) {
       this.showToast('Expense deleted successfully.', 'success');
       this.renderDashboard();
       this.renderHistoryTable();
       this.renderMonthlyReport();
+    } else {
+      this.showToast('Failed to delete expense.', 'error');
     }
   },
-
   /**
    * View Receipt Modal
    */
   viewReceipt(receiptUrl) {
     if (!receiptUrl) return;
-
     const modal = document.getElementById('receiptModal');
     const container = document.getElementById('receiptPreviewContainer');
-    
     if (receiptUrl.startsWith('http')) {
       container.innerHTML = `
         <div class="text-center p-4">
@@ -940,14 +805,12 @@ confirmDeleteAllData() {
       // Base64 image
       container.innerHTML = `<img src="${receiptUrl}" class="max-w-full max-h-[70vh] rounded-xl object-contain mx-auto shadow-md" alt="Expense Receipt" />`;
     }
-
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     }
     this.initLucideIcons();
   },
-
   /**
    * Close Receipt Modal
    */
@@ -958,7 +821,6 @@ confirmDeleteAllData() {
       modal.classList.remove('flex');
     }
   },
-
   /**
    * Open Settings Modal
    */
@@ -967,14 +829,12 @@ confirmDeleteAllData() {
     document.getElementById('settingsSheetId').value = config.googleSheetId || '';
     document.getElementById('settingsScriptUrl').value = config.appsScriptUrl || '';
     document.getElementById('settingsEmail').value = config.emailAddress || '';
-
     const modal = document.getElementById('settingsModal');
     if (modal) {
       modal.classList.remove('hidden');
       modal.classList.add('flex');
     }
   },
-
   /**
    * Close Settings Modal
    */
@@ -985,7 +845,6 @@ confirmDeleteAllData() {
       modal.classList.remove('flex');
     }
   },
-
   /**
    * Open Setup Guide Modal
    */
@@ -996,7 +855,6 @@ confirmDeleteAllData() {
       modal.classList.add('flex');
     }
   },
-
   /**
    * Close Setup Guide Modal
    */
@@ -1007,14 +865,12 @@ confirmDeleteAllData() {
       modal.classList.remove('flex');
     }
   },
-
   /**
    * Update the connection status pill in header
    */
   updateConnectionStatusBadge() {
     const badge = document.getElementById('headerConnectionBadge');
     if (!badge) return;
-
     const isConfigured = window.ConfigManager.isConfigured();
     if (isConfigured) {
       badge.innerHTML = `
@@ -1031,5 +887,4 @@ confirmDeleteAllData() {
     }
   }
 };
-
 window.UI = UI;
